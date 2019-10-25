@@ -69,7 +69,7 @@ const durationMultipliers: Map<string, number> = new Map([
 ]);
 
 function extractDurationAndMessage(str: string): [number, string] | undefined {
-    const match = /^(\d+) ?(m|s)?(?:\s+(.*))?$/.exec(str);
+    const match = /^(\d+) ?(w|wks?|weeks?|d|days?|h|hrs?|hours?|m|mins?|minutes?|s|secs?|seconds?)?(?:\s+(.*))?$/.exec(str);
     if (!match) return undefined;
 
     let [, quantityStr, unit, message] = match;
