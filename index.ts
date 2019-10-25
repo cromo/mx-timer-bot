@@ -8,8 +8,7 @@ interface Config {
   storage?: string;
 };
 
-const config = TOML.parse(readFileSync("config.toml", {encoding: "utf-8"})) as unknown as Config;
-config.storage = config.storage || "bot.json";
+const config = getConfig();
 
 const client = new MatrixClient(config.homeserverUrl, config.accessToken, new SimpleFsStorageProvider(config.storage));
 AutojoinRoomsMixin.setupOnClient(client);
@@ -26,6 +25,15 @@ client.on('room.message', (roomId, event) => {
         client.sendNotice(roomId, message);
     }, delay);
 });
+
+function getConfig(): Config {
+    const fileConfig = TOML.parse(readFileSync("config.toml", {encoding: "utf-8"})) as unknown as Config;
+    return {
+        homeserverUrl: process.env.MX_TIMER_BOT_HOMESERVER_URL || fileConfig.homeserverUrl || "https://matrix.org",
+        accessToken: process.env.MX_TIMER_BOT_ACCESS_TOKEN || fileConfig.accessToken || "TOKEN NOT SET",
+        storage: process.env.MX_TIMER_BOT_SYNC_FILE || fileConfig.storage || "bot.json"
+    } as Config;
+}
 
 function hasContent(event: any): boolean {
     return !!event.content;
