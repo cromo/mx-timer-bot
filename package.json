@@ -1,0 +1,24 @@
+{
+  "name": "mx-timer-bot",
+  "version": "0.1.0",
+  "description": "Sends a message when a timer is up",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cromo/mx-timer-bot.git"
+  },
+  "keywords": [
+    "matrix",
+    "bot",
+    "timer"
+  ],
+  "author": "Cristián Romo",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cromo/mx-timer-bot/issues"
+  },
+  "homepage": "https://github.com/cromo/mx-timer-bot#readme"
+}
