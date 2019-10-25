@@ -36,9 +36,10 @@ function startsWithBangCommand(command: string): (event: any) => boolean {
 }
 
 function extractDurationAndMessage(str: string): [number, string] | undefined {
-    const match = /^(\d+) ?(m|s)?\s+(.*)$/.exec(str);
+    const match = /^(\d+) ?(m|s)?(?:\s+(.*))?$/.exec(str);
     if (!match) return undefined;
-    const [, quantity, unit, message] = match;
+    let [, quantity, unit, message] = match;
+    message = message || `Timer set ${quantity}${unit} ago finished.`;
     if (unit === 'm') return [+quantity * 60 * 1000, message];
     if (unit === 's') return [+quantity * 1000, message];
     return [+quantity * 60 * 1000, message];
