@@ -20,5 +20,10 @@
   "bugs": {
     "url": "https://github.com/cromo/mx-timer-bot/issues"
   },
-  "homepage": "https://github.com/cromo/mx-timer-bot#readme"
+  "homepage": "https://github.com/cromo/mx-timer-bot#readme",
+  "dependencies": {
+    "@iarna/toml": "^2.2.3",
+    "matrix-bot-sdk": "^0.3.9",
+    "ts-node": "^8.4.1"
+  }
 }
