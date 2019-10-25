@@ -65,3 +65,6 @@ sync.json
 
 # User config file
 config.toml
+
+# Timer database
+timers.db
