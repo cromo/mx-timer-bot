@@ -31,7 +31,7 @@ function getConfig(): Config {
     return {
         homeserverUrl: process.env.MX_TIMER_BOT_HOMESERVER_URL || fileConfig.homeserverUrl || "https://matrix.org",
         accessToken: process.env.MX_TIMER_BOT_ACCESS_TOKEN || fileConfig.accessToken || "TOKEN NOT SET",
-        storage: process.env.MX_TIMER_BOT_SYNC_FILE || fileConfig.storage || "bot.json"
+        storage: process.env.MX_TIMER_BOT_SYNC_FILE || fileConfig.storage || "sync.json"
     } as Config;
 }
 

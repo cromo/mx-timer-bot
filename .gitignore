@@ -61,7 +61,7 @@ typings/
 .next
 
 # Matrix client sync state
-bot.json
+sync.json
 
 # User config file
 config.toml
