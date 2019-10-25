@@ -62,3 +62,6 @@ typings/
 
 # Matrix client sync state
 bot.json
+
+# User config file
+config.toml
