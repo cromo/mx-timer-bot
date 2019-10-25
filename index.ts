@@ -16,16 +16,24 @@ AutojoinRoomsMixin.setupOnClient(client);
 
 client.start().then(() => console.log("Client started"));
 client.on('room.message', (roomId, event) => {
-    if (!event.content) return;
-    const body: string = event.content.body;
-    if (!body.startsWith("!timer")) return;
-    const timer = extractDurationAndMessage(body.substring("!timer".length).trim());
+    if (![hasContent, startsWithBangCommand("timer")].every(f => f(event))) {
+        return;
+    }
+    const timer = extractDurationAndMessage(event.content.body.substring("!timer".length).trim());
     if (!timer) return client.sendNotice(roomId, "Unrecognized format");
     const [delay, message] = timer;
     setTimeout(() => {
         client.sendNotice(roomId, message);
     }, delay);
 });
+
+function hasContent(event: any): boolean {
+    return !!event.content;
+}
+
+function startsWithBangCommand(command: string): (event: any) => boolean {
+    return event => event.content.body.startsWith(`!${command}`);
+}
 
 function extractDurationAndMessage(str: string): [number, string] | undefined {
     const match = /^(\d+) ?(m|s)?\s+(.*)$/.exec(str);
