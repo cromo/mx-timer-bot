@@ -34,9 +34,10 @@ client.on('room.message', (roomId, event) => {
     const timer = extractDurationAndMessage(event.content.body.substring("!timer".length).trim());
     if (!timer) return client.sendNotice(roomId, "Unrecognized format");
     const [delay, message] = timer;
-    const changes = new Timer(event.event_id, roomId, new Date(+new Date() + delay), message).save(db);
+    const reminder = new Timer(event.event_id, roomId, new Date(+new Date() + delay), message);
+    const changes = reminder.save(db);
     console.log("Database rows added", changes);
-    setTimeout(() => sendReminder(roomId, message, event.event_id), delay);
+    setTimeout(() => sendReminder(reminder.roomId, reminder.message, reminder.eventId), delay);
 });
 
 function partition<T>(p: (t: T) => boolean, ts: T[]): [T[], T[]] {
