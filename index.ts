@@ -1,7 +1,7 @@
 import { MatrixClient, SimpleFsStorageProvider, AutojoinRoomsMixin } from "matrix-bot-sdk";
 import * as TOML from "@iarna/toml";
 import { readFileSync } from "fs";
-import * as Database from "better-sqlite3";
+import { getDatabase, Timer } from "./model";
 
 interface Config {
   homeserverUrl: string;
@@ -11,32 +11,19 @@ interface Config {
 };
 
 const config = getConfig();
-const db = new Database(config.dbFile);
-
-db.exec(`
-create table if not exists timers (
-    eventId text primary key not null,
-    roomId text not null,
-    time text not null,
-    message text not null
-)`);
+const db = getDatabase(config.dbFile);
 
 const client = new MatrixClient(config.homeserverUrl, config.accessToken, new SimpleFsStorageProvider(config.syncFile));
 AutojoinRoomsMixin.setupOnClient(client);
 
 client.start().then(() => {
     console.log("Client started");
-    const existingTimers = db.prepare(`
-        select eventId, roomId, time, message
-        from timers
-    `).all().map(t => ({...t, time: new Date(t.time)}));
 
     const now = new Date();
-    const remaining = existingTimers.filter(t => now < t.time);
-    remaining.forEach(t => setTimeout(() => sendReminder(t.roomId, t.message, t.eventId), t.time - +now));
-    console.log(`Restarted ${remaining.length} timers`);
+    const [pastDue, upcoming] = partition(t => t.time <= now, Timer.getAll(db));
+    upcoming.forEach(t => setTimeout(() => sendReminder(t.roomId, t.message, t.eventId), +t.time - +now));
+    console.log(`Restarted ${upcoming.length} timers`);
 
-    const pastDue = existingTimers.filter(t => t.time <= now);
     pastDue.forEach(t => sendReminder(t.roomId, t.message, t.eventId));
     console.log(`Sent notifications for ${pastDue.length} past due timers`);
 });
@@ -47,14 +34,22 @@ client.on('room.message', (roomId, event) => {
     const timer = extractDurationAndMessage(event.content.body.substring("!timer".length).trim());
     if (!timer) return client.sendNotice(roomId, "Unrecognized format");
     const [delay, message] = timer;
-    const changes = db.prepare('insert into timers (eventId, roomId, time, message) values (?, ?, ?, ?)').run(event.event_id, roomId, new Date(+new Date() + delay).toISOString(), message);
+    const changes = new Timer(event.event_id, roomId, new Date(+new Date() + delay), message).save(db);
     console.log("Database rows added", changes);
     setTimeout(() => sendReminder(roomId, message, event.event_id), delay);
 });
 
+function partition<T>(p: (t: T) => boolean, ts: T[]): [T[], T[]] {
+    return ts.reduce(([passed, failed], cur) =>
+        p(cur) ?
+            [[...passed, cur], failed] :
+            [passed, [...failed, cur]],
+        [[], []]);
+}
+
 function sendReminder(roomId: string, message: string, eventId: string) {
     client.sendNotice(roomId, message);
-    const deletions = db.prepare(`delete from timers where eventId = ?`).run(eventId);
+    const deletions = Timer.delete(db, eventId);
     console.log("Database rows deleted", deletions);
 }
 
