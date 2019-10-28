@@ -43,14 +43,12 @@ mx-timer-bot can be configured via it's `config.toml` or via environment variabl
 
 - `homeserverUrl` *optional* - the homeserver of the account the bot will use. Defaults to `"https://matrix.org"`.
 - `accessToken` - the access token to authenticate the bot. See [T2Bot's documentation for how to get an access token](https://t2bot.io/docs/access_tokens/).
-- `syncFile` *optional* - the JSON file in which the synchronization state with the matrix server is saved. Defaults to `"sync.json"`.
 - `dbFile` *optional* - the SQLite database that persists reminders in case the bot gets restarted. Defaults to `"timers.db"`.
 
 ### Environment variables
 
 - `MX_TIMER_BOT_HOMESERVER_URL` - same as `homeserverUrl` in `config.toml`.
 - `MX_TIMER_BOT_ACCESS_TOKEN` - same as `accessToken` in `config.toml`.
-- `MX_TIMER_BOT_SYNC_FILE` same as `syncFile` in `config.toml`.
 - `MX_TIMER_BOT_DB_FILE` same as `dbFile` in `config.toml`.
 
 ## License

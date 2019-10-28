@@ -6,7 +6,6 @@ import { getDatabase, Timer, SqliteDbStorageProvider } from "./model";
 interface Config {
   homeserverUrl: string;
   accessToken: string;
-  syncFile?: string;
   dbFile?: string;
 };
 
@@ -47,7 +46,6 @@ function getConfig(): Config {
     return {
         homeserverUrl: process.env.MX_TIMER_BOT_HOMESERVER_URL || fileConfig.homeserverUrl || "https://matrix.org",
         accessToken: process.env.MX_TIMER_BOT_ACCESS_TOKEN || fileConfig.accessToken || "TOKEN NOT SET",
-        syncFile: process.env.MX_TIMER_BOT_SYNC_FILE || fileConfig.syncFile || "sync.json",
         dbFile: process.env.MX_TIMER_BOT_DB_FILE || fileConfig.dbFile || "timers.db"
     } as Config;
 }
