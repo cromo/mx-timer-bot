@@ -30,12 +30,10 @@ client.on('room.message', (roomId, event) => {
     if (![hasContent, startsWithBangCommand("timer")].every(f => f(event))) {
         return;
     }
-    const desiredTimer = extractDurationAndMessage(event.content.body.substring("!timer".length).trim());
-    if (!desiredTimer) {
-        return client.sendNotice(roomId, "Unrecognized format")
-    };
-    const [delay, message] = desiredTimer;
-    const timer = new Timer(event.event_id, roomId, new Date(+new Date() + delay), message);
+    const timer = parseTimer(roomId, event);
+    if (!timer) {
+        return client.sendNotice(roomId, "Unrecognized format");
+    }
     const changes = timer.save(db);
     console.log("Database rows added", changes);
     scheduleReminder(timer);
@@ -92,6 +90,15 @@ function startsWithBangCommand(command: string): (event: any) => boolean {
     return event => event.content.body.startsWith(`!${command}`);
 }
 
+function parseTimer(roomId: string, event: any): Timer | undefined {
+    const desiredTimer = parseDurationAndMessage(event.content.body.substring("!timer".length).trim());
+    if (!desiredTimer) {
+        return;
+    };
+    const [delay, message] = desiredTimer;
+    return new Timer(event.event_id, roomId, new Date(+new Date() + delay), message);
+}
+
 const unitNormalizations: Map<string, string> = new Map([
     ["m", "minutes"],
     ["min", "minutes"],
@@ -126,7 +133,7 @@ const durationMultipliers: Map<string, number> = new Map([
     ["weeks", 7 * 24 * 60 * 60 * 1000]
 ]);
 
-function extractDurationAndMessage(str: string): [number, string] | undefined {
+function parseDurationAndMessage(str: string): [number, string] | undefined {
     const match = /^(\d+) ?(w|wks?|weeks?|d|days?|h|hrs?|hours?|m|mins?|minutes?|s|secs?|seconds?)?(?:\s+(.*))?$/.exec(str);
     if (!match) return undefined;
 
