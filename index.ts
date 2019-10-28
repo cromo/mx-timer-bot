@@ -1,4 +1,4 @@
-import { MatrixClient, SimpleFsStorageProvider, AutojoinRoomsMixin } from "matrix-bot-sdk";
+import { MatrixClient, SimpleFsStorageProvider, AutojoinRoomsMixin, IStorageProvider } from "matrix-bot-sdk";
 import * as TOML from "@iarna/toml";
 import { readFileSync } from "fs";
 import { getDatabase, Timer } from "./model";
@@ -12,56 +12,35 @@ interface Config {
 
 const config = getConfig();
 const db = getDatabase(config.dbFile);
-
-const client = new MatrixClient(config.homeserverUrl, config.accessToken, new SimpleFsStorageProvider(config.syncFile));
-AutojoinRoomsMixin.setupOnClient(client);
+const client = getClient(config.homeserverUrl, config.accessToken, new SimpleFsStorageProvider(config.syncFile));
 
 client.start().then(() => {
     console.log("Client started");
 
     const now = new Date();
     const [pastDue, upcoming] = partition(t => t.time <= now, Timer.getAll(db));
+
     upcoming.forEach(scheduleReminder);
     console.log(`Restarted ${upcoming.length} timers`);
 
     pastDue.forEach(scheduleReminder);
     console.log(`Sent notifications for ${pastDue.length} past due timers`);
 });
+
 client.on('room.message', (roomId, event) => {
     if (![hasContent, startsWithBangCommand("timer")].every(f => f(event))) {
         return;
     }
-    const timer = extractDurationAndMessage(event.content.body.substring("!timer".length).trim());
-    if (!timer) return client.sendNotice(roomId, "Unrecognized format");
-    const [delay, message] = timer;
-    const reminder = new Timer(event.event_id, roomId, new Date(+new Date() + delay), message);
-    const changes = reminder.save(db);
+    const desiredTimer = extractDurationAndMessage(event.content.body.substring("!timer".length).trim());
+    if (!desiredTimer) {
+        return client.sendNotice(roomId, "Unrecognized format")
+    };
+    const [delay, message] = desiredTimer;
+    const timer = new Timer(event.event_id, roomId, new Date(+new Date() + delay), message);
+    const changes = timer.save(db);
     console.log("Database rows added", changes);
-    scheduleReminder(reminder);
+    scheduleReminder(timer);
 });
-
-function partition<T>(p: (t: T) => boolean, ts: T[]): [T[], T[]] {
-    return ts.reduce(([passed, failed], cur) =>
-        p(cur) ?
-            [[...passed, cur], failed] :
-            [passed, [...failed, cur]],
-        [[], []]);
-}
-
-function sendReminder(roomId: string, message: string, eventId: string) {
-    client.sendNotice(roomId, message);
-    const deletions = Timer.delete(db, eventId);
-    console.log("Database rows deleted", deletions);
-}
-
-function scheduleReminder(timer: Timer) {
-    const delay = +timer.time - +new Date();
-    if (delay <= 0) {
-        sendReminder(timer.roomId, timer.message, timer.eventId);
-    } else {
-        setTimeout(() => sendReminder(timer.roomId, timer.message, timer.eventId), delay);
-    }
-}
 
 function getConfig(): Config {
     const fileConfig = TOML.parse(readFileSync("config.toml", {encoding: "utf-8"})) as unknown as Config;
@@ -71,6 +50,40 @@ function getConfig(): Config {
         syncFile: process.env.MX_TIMER_BOT_SYNC_FILE || fileConfig.syncFile || "sync.json",
         dbFile: process.env.MX_TIMER_BOT_DB_FILE || fileConfig.dbFile || "timers.db"
     } as Config;
+}
+
+function getClient(homeserverUrl: string, accessToken: string, storage: IStorageProvider) {
+    const client = new MatrixClient(homeserverUrl, accessToken, storage);
+    AutojoinRoomsMixin.setupOnClient(client);
+    return client;
+}
+
+function partition<T>(p: (t: T) => boolean, ts: T[]): [T[], T[]] {
+    return ts.reduce(([passed, failed], cur) =>
+        p(cur) ?
+            [[...passed, cur], failed] :
+            [passed, [...failed, cur]],
+        [[], []]
+    );
+}
+
+function scheduleReminder(timer: Timer) {
+    const delay = +timer.time - +new Date();
+    if (delay <= 0) {
+        send();
+    } else {
+        setTimeout(() => send(), delay);
+    }
+
+    function send(): void {
+        return sendReminder(timer.roomId, timer.message, timer.eventId);
+    }
+}
+
+function sendReminder(roomId: string, message: string, eventId: string) {
+    client.sendNotice(roomId, message);
+    const deletions = Timer.delete(db, eventId);
+    console.log("Database rows deleted", deletions);
 }
 
 function hasContent(event: any): boolean {
@@ -106,6 +119,7 @@ const unitNormalizations: Map<string, string> = new Map([
     ["week", "weeks"],
     ["weeks", "weeks"]
 ]);
+
 const durationMultipliers: Map<string, number> = new Map([
     ["seconds", 1000],
     ["minutes", 60 * 1000],
