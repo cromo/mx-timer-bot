@@ -21,10 +21,10 @@ client.start().then(() => {
 
     const now = new Date();
     const [pastDue, upcoming] = partition(t => t.time <= now, Timer.getAll(db));
-    upcoming.forEach(t => setTimeout(() => sendReminder(t.roomId, t.message, t.eventId), +t.time - +now));
+    upcoming.forEach(scheduleReminder);
     console.log(`Restarted ${upcoming.length} timers`);
 
-    pastDue.forEach(t => sendReminder(t.roomId, t.message, t.eventId));
+    pastDue.forEach(scheduleReminder);
     console.log(`Sent notifications for ${pastDue.length} past due timers`);
 });
 client.on('room.message', (roomId, event) => {
@@ -37,7 +37,7 @@ client.on('room.message', (roomId, event) => {
     const reminder = new Timer(event.event_id, roomId, new Date(+new Date() + delay), message);
     const changes = reminder.save(db);
     console.log("Database rows added", changes);
-    setTimeout(() => sendReminder(reminder.roomId, reminder.message, reminder.eventId), delay);
+    scheduleReminder(reminder);
 });
 
 function partition<T>(p: (t: T) => boolean, ts: T[]): [T[], T[]] {
@@ -52,6 +52,15 @@ function sendReminder(roomId: string, message: string, eventId: string) {
     client.sendNotice(roomId, message);
     const deletions = Timer.delete(db, eventId);
     console.log("Database rows deleted", deletions);
+}
+
+function scheduleReminder(timer: Timer) {
+    const delay = +timer.time - +new Date();
+    if (delay <= 0) {
+        sendReminder(timer.roomId, timer.message, timer.eventId);
+    } else {
+        setTimeout(() => sendReminder(timer.roomId, timer.message, timer.eventId), delay);
+    }
 }
 
 function getConfig(): Config {
