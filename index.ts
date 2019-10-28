@@ -68,7 +68,7 @@ function scheduleReminder(timer: Timer) {
     if (delay <= 0) {
         send();
     } else {
-        setTimeout(() => send(), delay);
+        setTimeout(send, delay);
     }
 
     function send(): void {
