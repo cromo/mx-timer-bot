@@ -1,7 +1,7 @@
-import { MatrixClient, SimpleFsStorageProvider, AutojoinRoomsMixin, IStorageProvider } from "matrix-bot-sdk";
+import { MatrixClient, AutojoinRoomsMixin, IStorageProvider } from "matrix-bot-sdk";
 import * as TOML from "@iarna/toml";
 import { readFileSync } from "fs";
-import { getDatabase, Timer } from "./model";
+import { getDatabase, Timer, SqliteDbStorageProvider } from "./model";
 
 interface Config {
   homeserverUrl: string;
@@ -12,7 +12,7 @@ interface Config {
 
 const config = getConfig();
 const db = getDatabase(config.dbFile);
-const client = getClient(config.homeserverUrl, config.accessToken, new SimpleFsStorageProvider(config.syncFile));
+const client = getClient(config.homeserverUrl, config.accessToken, new SqliteDbStorageProvider(db));
 
 client.start().then(() => {
     console.log("Client started");

@@ -1,7 +1,15 @@
 import * as Database from "better-sqlite3";
+import { IFilterInfo, IStorageProvider } from "matrix-bot-sdk";
 
 export function getDatabase(filename: string) {
     const db = new Database(filename);
+
+    db.exec(`
+    create table if not exists matrixSync (
+        id integer primary key not null,
+        syncToken text,
+        filter text
+    )`);
 
     db.exec(`
     create table if not exists timers (
@@ -12,6 +20,47 @@ export function getDatabase(filename: string) {
     )`);
 
     return db;
+}
+
+export class SqliteDbStorageProvider implements IStorageProvider {
+    constructor(private readonly db)
+    {
+        if (this.db.prepare(`select count(*) as count from matrixSync`).get().count === 0) {
+            this.db.exec(`
+                insert into matrixSync (id, syncToken, filter)
+                values (1, null, null)
+            `);
+        }
+    }
+
+    setSyncToken(token: string | null): void {
+        this.db.prepare(`
+            update matrixSync
+            set syncToken = ?
+        `).run(token);
+    }
+
+    getSyncToken(): string {
+        return this.db.prepare(`
+            select syncToken
+            from matrixSync
+        `).get().syncToken;
+    }
+
+    setFilter(filter: IFilterInfo): void {
+        this.db.prepare(`
+            update matrixSync
+            set filter = ?
+        `).run(JSON.stringify(filter));
+    }
+
+    getFilter(): IFilterInfo {
+        const sync = this.db.prepare(`
+            select filter
+            from matrixSync
+        `).get();
+        return JSON.parse(sync.filter) as IFilterInfo;
+    }
 }
 
 export class Timer {
