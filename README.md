@@ -36,7 +36,7 @@ npm start
 Using Docker:
 
 ```bash
-docker run -it --rm -v "$(pwd)":/src/state -e MX_TIMER_BOT_ACCESS_TOKEN='YOUR ACCESS TOKEN' -e MX_TIMER_BOT_DB_FILE=state/mx-timer-bot.db mx-timer-bot
+docker run -it --rm -v "$(pwd)":/src/state -e MX_TIMER_BOT_ACCESS_TOKEN='YOUR ACCESS TOKEN' -e MX_TIMER_BOT_DB_FILE=state/mx-timer-bot.db cromo/mx-timer-bot
 ```
 
 This will run mx-timer-bot and store the state of the bot on the host so it can survive restarts.
